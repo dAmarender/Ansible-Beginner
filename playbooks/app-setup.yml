@@ -1,0 +1,39 @@
+# app-setup.yml
+---
+  - hosts: webservers
+    become: true
+    # Creating Varibales with in the Code
+    vars:
+      src_path: "/Users/amarenderreddydodle/ansible0"
+      dest_path: "/var/www/html"
+
+    tasks:
+      - name: Upload application file
+        copy:
+          src: "{{src_path}}/index.php"
+          dest: "{{ dest_path}}"
+          mode: 0755
+    # Using the variables form the application and used in the Jinja2 format 
+      - name: Create a simple info page
+        copy:
+          dest: "{{ dest_path}}/info.php"
+          content: "<h1> info about our webserver {{ ansible_hostname}} </h1> \n <h1> info about our webserver {{ ansible_domain}} </h1>"
+    # Use register variable to stor the output 
+      - name: See directory contents
+        command: ls -la {{dest_path}}
+        register: list_Files
+
+      - name: Debug list files
+        debug:
+          msg: "{{list_Files}}"             
+    # Configure Init file.
+      - name: Configure php.ini file
+        lineinfile:
+          path: /etc/php/7.4/apache2/php.ini
+          regexp: ^short_open_tag
+          line: 'short_open_tag=On' 
+        notify: restart apache2
+    # User Service handlers to restart when there is a changes in the configuration
+    handlers:       
+      - name: restart apache2
+        service: name=apache2 state=restarted
